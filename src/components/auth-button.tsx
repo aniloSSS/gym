@@ -6,6 +6,8 @@ import { AlertCircle, CheckCircle2, Loader2, LogIn, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
+const productionRedirectUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://anilosss.github.io/GYM/";
+
 export function AuthButton({ compact = false }: { compact?: boolean }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,7 @@ export function AuthButton({ compact = false }: { compact?: boolean }) {
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const redirectTo = `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ""}/`;
+      const redirectTo = getAuthRedirectUrl();
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -148,6 +150,22 @@ export function AuthButton({ compact = false }: { compact?: boolean }) {
       {errorMessage && <AuthError message={errorMessage} />}
     </div>
   );
+}
+
+function getAuthRedirectUrl() {
+  const hostname = window.location.hostname.toLowerCase();
+  const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+  const isMobile = /android|iphone|ipad|ipod/i.test(window.navigator.userAgent);
+
+  if (hostname === "anilosss.github.io" || (isLocal && isMobile)) {
+    return productionRedirectUrl;
+  }
+
+  if (isLocal) {
+    return `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ""}/`;
+  }
+
+  return productionRedirectUrl;
 }
 
 function AuthError({ message }: { message: string }) {
