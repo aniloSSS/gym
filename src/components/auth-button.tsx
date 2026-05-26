@@ -153,18 +153,6 @@ export function AuthButton({ compact = false }: { compact?: boolean }) {
 }
 
 function getAuthRedirectUrl() {
-  const hostname = window.location.hostname.toLowerCase();
-  const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
-  const isMobile = /android|iphone|ipad|ipod/i.test(window.navigator.userAgent);
-
-  if (hostname === "anilosss.github.io" || (isLocal && isMobile)) {
-    return productionRedirectUrl;
-  }
-
-  if (isLocal) {
-    return `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ""}/`;
-  }
-
   return productionRedirectUrl;
 }
 
