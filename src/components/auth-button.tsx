@@ -6,7 +6,7 @@ import { AlertCircle, CheckCircle2, Loader2, LogIn, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-const productionRedirectUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://anilosss.github.io/GYM/";
+const productionSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://anilosss.github.io/GYM/";
 
 export function AuthButton({ compact = false }: { compact?: boolean }) {
   const [user, setUser] = useState<User | null>(null);
@@ -155,7 +155,7 @@ export function AuthButton({ compact = false }: { compact?: boolean }) {
 }
 
 function getAuthRedirectUrl() {
-  return productionRedirectUrl;
+  return new URL("auth/callback/", productionSiteUrl).toString();
 }
 
 function cleanAuthCallbackUrl() {
