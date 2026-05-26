@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="accent" x1="90" y1="86" x2="424" y2="426" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C8FF4D"/>
+      <stop offset="0.48" stop-color="#20DDB1"/>
+      <stop offset="1" stop-color="#6E8BFF"/>
+    </linearGradient>
+    <radialGradient id="soft" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(252 238) rotate(90) scale(235)">
+      <stop stop-color="#18332D"/>
+      <stop offset="1" stop-color="#05070A"/>
+    </radialGradient>
+    <filter id="glow" x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.31 0 0 0 0 1 0 0 0 0 0.66 0 0 0 0.65 0"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#soft)"/>
+  <rect x="35" y="35" width="442" height="442" rx="94" fill="none" stroke="url(#accent)" stroke-width="10" opacity="0.95"/>
+  <path d="M116 252h280" stroke="#F7FFF7" stroke-width="34" stroke-linecap="round"/>
+  <path d="M100 200v104" stroke="url(#accent)" stroke-width="38" stroke-linecap="round" filter="url(#glow)"/>
+  <path d="M150 180v144" stroke="#F7FFF7" stroke-width="34" stroke-linecap="round"/>
+  <path d="M362 180v144" stroke="#F7FFF7" stroke-width="34" stroke-linecap="round"/>
+  <path d="M412 200v104" stroke="url(#accent)" stroke-width="38" stroke-linecap="round" filter="url(#glow)"/>
+  <path d="M206 334h42l27-64 35 112 28-48h52" fill="none" stroke="url(#accent)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+  <path d="M224 158l32-34 32 34" fill="none" stroke="#F7FFF7" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

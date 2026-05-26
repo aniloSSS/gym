@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { User } from "@supabase/supabase-js";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import type { Json } from "@/types/database";
 
 export type Exercise = {
   id: string;
@@ -74,6 +77,8 @@ export type FitnessState = {
   foodGroups: FoodGroup[];
   tracking: Record<string, DayTracking>;
 };
+
+export type SyncStatus = "local" | "loading" | "synced" | "saving" | "error";
 
 const todayIso = localDateIso();
 
@@ -1409,6 +1414,17 @@ const key = "fit-transform-state-v5";
 export function useFitnessStore() {
   const [state, setState] = useState<FitnessState>(defaultFitnessState);
   const [ready, setReady] = useState(false);
+  const [remoteReady, setRemoteReady] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>("local");
+  const userId = user?.id ?? "";
+  const stateRef = useRef(state);
+  const lastSavedRef = useRef("");
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
     const saved = window.localStorage.getItem(key);
@@ -1419,14 +1435,150 @@ export function useFitnessStore() {
   }, []);
 
   useEffect(() => {
-    if (ready) {
-      window.localStorage.setItem(key, JSON.stringify(state));
+    const supabase = createSupabaseBrowserClient();
+    let mounted = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) {
+        return;
+      }
+
+      const sessionUser = data.session?.user ?? null;
+      setUser(sessionUser);
+      setRemoteReady(!sessionUser);
+      setSyncStatus(sessionUser ? "loading" : "local");
+    });
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      const sessionUser = session?.user ?? null;
+      setUser(sessionUser);
+      setRemoteReady(!sessionUser);
+      setSyncStatus(sessionUser ? "loading" : "local");
+    });
+
+    return () => {
+      mounted = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!ready || !userId) {
+      return;
     }
-  }, [ready, state]);
+
+    const supabase = createSupabaseBrowserClient();
+    const currentUserId = userId;
+    let cancelled = false;
+
+    async function loadRemoteState() {
+      setSyncStatus("loading");
+
+      const { data, error } = await supabase
+        .from("app_state")
+        .select("state")
+        .eq("user_id", currentUserId)
+        .maybeSingle();
+
+      if (cancelled) {
+        return;
+      }
+
+      if (error) {
+        console.error(error);
+        setRemoteReady(true);
+        setSyncStatus("error");
+        return;
+      }
+
+      if (data?.state) {
+        const remoteState = normalizeState(data.state as Partial<FitnessState>);
+        const serialized = JSON.stringify(remoteState);
+        lastSavedRef.current = serialized;
+        setState(remoteState);
+        window.localStorage.setItem(key, serialized);
+        setSyncStatus("synced");
+      } else {
+        const currentState = stateRef.current;
+        const serialized = JSON.stringify(currentState);
+        lastSavedRef.current = serialized;
+        await supabase.from("app_state").upsert(
+          {
+            user_id: currentUserId,
+            state: currentState as unknown as Json
+          },
+          { onConflict: "user_id" }
+        );
+        setSyncStatus("synced");
+      }
+
+      setRemoteReady(true);
+    }
+
+    loadRemoteState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, userId]);
+
+  useEffect(() => {
+    if (!ready) {
+      return;
+    }
+
+    const serialized = JSON.stringify(state);
+    window.localStorage.setItem(key, serialized);
+
+    if (!user) {
+      setSyncStatus("local");
+      return;
+    }
+
+    const currentUser = user;
+
+    if (!remoteReady || serialized === lastSavedRef.current) {
+      return;
+    }
+
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+
+    setSyncStatus("saving");
+    saveTimerRef.current = setTimeout(async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.from("app_state").upsert(
+        {
+          user_id: currentUser.id,
+          state: state as unknown as Json
+        },
+        { onConflict: "user_id" }
+      );
+
+      if (error) {
+        console.error(error);
+        setSyncStatus("error");
+        return;
+      }
+
+      lastSavedRef.current = serialized;
+      setSyncStatus("synced");
+    }, 700);
+
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, [ready, remoteReady, state, user]);
 
   const api = useMemo(
     () => ({
       state,
+      user,
+      syncStatus,
+      isAuthenticated: Boolean(user),
       setProfile: (profile: Profile) => setState((current) => ({ ...current, profile })),
       updateDay: (date: string, patch: Partial<DayTracking>) =>
         setState((current) => ({
@@ -1527,7 +1679,7 @@ export function useFitnessStore() {
         })),
       reset: () => setState(defaultFitnessState)
     }),
-    [state]
+    [state, syncStatus, user]
   );
 
   return api;

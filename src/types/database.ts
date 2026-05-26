@@ -26,6 +26,7 @@ export type Database = {
         };
         Insert: Partial<Database["public"]["Tables"]["users"]["Row"]> & { id: string };
         Update: Partial<Database["public"]["Tables"]["users"]["Row"]>;
+        Relationships: [];
       };
       workouts: {
         Row: {
@@ -39,6 +40,7 @@ export type Database = {
         };
         Insert: Partial<Database["public"]["Tables"]["workouts"]["Row"]>;
         Update: Partial<Database["public"]["Tables"]["workouts"]["Row"]>;
+        Relationships: [];
       };
       exercises: {
         Row: {
@@ -56,6 +58,7 @@ export type Database = {
         };
         Insert: Partial<Database["public"]["Tables"]["exercises"]["Row"]>;
         Update: Partial<Database["public"]["Tables"]["exercises"]["Row"]>;
+        Relationships: [];
       };
       meals: {
         Row: {
@@ -71,6 +74,7 @@ export type Database = {
         };
         Insert: Partial<Database["public"]["Tables"]["meals"]["Row"]>;
         Update: Partial<Database["public"]["Tables"]["meals"]["Row"]>;
+        Relationships: [];
       };
       progress: {
         Row: {
@@ -84,6 +88,7 @@ export type Database = {
         };
         Insert: Partial<Database["public"]["Tables"]["progress"]["Row"]>;
         Update: Partial<Database["public"]["Tables"]["progress"]["Row"]>;
+        Relationships: [];
       };
       daily_tracking: {
         Row: {
@@ -97,7 +102,29 @@ export type Database = {
         };
         Insert: Partial<Database["public"]["Tables"]["daily_tracking"]["Row"]>;
         Update: Partial<Database["public"]["Tables"]["daily_tracking"]["Row"]>;
+        Relationships: [];
+      };
+      app_state: {
+        Row: {
+          user_id: string;
+          state: Json;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          state: Json;
+          updated_at?: string;
+        };
+        Update: {
+          state?: Json;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 };

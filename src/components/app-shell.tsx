@@ -2,18 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Activity,
-  Apple,
-  BarChart3,
-  CalendarDays,
-  Dumbbell,
-  Home,
-  Menu,
-  User
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Apple, BarChart3, CalendarDays, Dumbbell, Home, User } from "lucide-react";
 import { AuthButton } from "@/components/auth-button";
+import { BrandMark } from "@/components/brand-mark";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -50,9 +41,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-white/10 bg-background/80 px-4 backdrop-blur-xl lg:hidden">
           <Brand compact />
           <div className="flex items-center gap-2">
-            <Button size="icon" variant="ghost" aria-label="Connexion Google">
-              <Menu className="h-5 w-5" />
-            </Button>
+            <AuthButton compact />
           </div>
         </header>
         <main className="mx-auto w-full max-w-7xl px-4 pb-24 pt-5 sm:px-6 lg:px-8 lg:py-8">
@@ -85,8 +74,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <Link href="/" className="flex items-center gap-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-glow">
-        <Activity className="h-5 w-5" />
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg shadow-glow">
+        <BrandMark className="h-10 w-10" />
       </div>
       {!compact && (
         <div>
