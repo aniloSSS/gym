@@ -30,11 +30,13 @@ export function AuthButton({ compact = false }: { compact?: boolean }) {
         }
 
         setUser(data.session?.user ?? null);
+        cleanAuthCallbackUrl();
         setLoading(false);
       });
 
       const { data } = supabase.auth.onAuthStateChange((_event, session) => {
         setUser(session?.user ?? null);
+        cleanAuthCallbackUrl();
         setLoading(false);
       });
 
@@ -154,6 +156,29 @@ export function AuthButton({ compact = false }: { compact?: boolean }) {
 
 function getAuthRedirectUrl() {
   return productionRedirectUrl;
+}
+
+function cleanAuthCallbackUrl() {
+  const url = new URL(window.location.href);
+  const authHash =
+    url.hash.includes("access_token=") ||
+    url.hash.includes("refresh_token=") ||
+    url.hash.includes("provider_token=");
+  const authQuery = url.searchParams.has("code") || url.searchParams.has("error");
+
+  if (!authHash && !authQuery) {
+    return;
+  }
+
+  if (authHash) {
+    url.hash = "";
+  }
+
+  for (const param of ["code", "error", "error_description", "error_code"]) {
+    url.searchParams.delete(param);
+  }
+
+  window.history.replaceState(null, document.title, `${url.pathname}${url.search}${url.hash}`);
 }
 
 function AuthError({ message }: { message: string }) {
