@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { Save } from "lucide-react";
+import { AuthButton } from "@/components/auth-button";
 import { EditableField, EditToggle } from "@/components/editable-field";
 import { PageHeading } from "@/components/page-heading";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useFitnessStore } from "@/lib/fitness-store";
 
 export default function ProfilePage() {
@@ -29,6 +30,20 @@ export default function ProfilePage() {
         title="Tes objectifs sont modifiables et pilotent tout le suivi."
         description="Change tes cibles quand tu veux : le dashboard et les barres de progression s'ajustent automatiquement."
       />
+
+      <Card className="mb-4 border-primary/20 bg-primary/[0.06]">
+        <CardHeader>
+          <CardTitle>Connexion et synchronisation</CardTitle>
+          <CardDescription>
+            Connecte-toi avec Google pour retrouver tes donnees sur ton telephone, ton ordinateur et tes futurs appareils.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="max-w-sm">
+            <AuthButton />
+          </div>
+        </CardContent>
+      </Card>
 
       <section className="grid gap-4 lg:grid-cols-[.8fr_1.2fr]">
         <Card>
