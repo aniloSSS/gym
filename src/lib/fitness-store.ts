@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { createSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase/browser";
 import type { Json } from "@/types/database";
 
 export type Exercise = {
@@ -1427,92 +1427,145 @@ export function useFitnessStore() {
   }, [state]);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(key);
-    if (saved) {
-      setState(normalizeState(JSON.parse(saved) as Partial<FitnessState>));
+    try {
+      const saved = window.localStorage.getItem(key);
+      if (saved) {
+        setState(normalizeState(JSON.parse(saved) as Partial<FitnessState>));
+      }
+    } catch (error) {
+      console.error(error);
+      window.localStorage.removeItem(key);
     }
+
     setReady(true);
   }, []);
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
     let mounted = true;
+    let unsubscribe: (() => void) | undefined;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) {
-        return;
-      }
+    if (!isSupabaseConfigured()) {
+      setRemoteReady(true);
+      setSyncStatus("local");
+      return () => {
+        mounted = false;
+      };
+    }
 
-      const sessionUser = data.session?.user ?? null;
-      setUser(sessionUser);
-      setRemoteReady(!sessionUser);
-      setSyncStatus(sessionUser ? "loading" : "local");
-    });
+    try {
+      const supabase = createSupabaseBrowserClient();
 
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      const sessionUser = session?.user ?? null;
-      setUser(sessionUser);
-      setRemoteReady(!sessionUser);
-      setSyncStatus(sessionUser ? "loading" : "local");
-    });
+      supabase.auth
+        .getSession()
+        .then(({ data, error }) => {
+          if (!mounted) {
+            return;
+          }
+
+          if (error) {
+            console.error(error);
+            setRemoteReady(true);
+            setSyncStatus("error");
+            return;
+          }
+
+          const sessionUser = data.session?.user ?? null;
+          setUser(sessionUser);
+          setRemoteReady(!sessionUser);
+          setSyncStatus(sessionUser ? "loading" : "local");
+        })
+        .catch((error) => {
+          console.error(error);
+          setRemoteReady(true);
+          setSyncStatus("error");
+        });
+
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        const sessionUser = session?.user ?? null;
+        setUser(sessionUser);
+        setRemoteReady(!sessionUser);
+        setSyncStatus(sessionUser ? "loading" : "local");
+      });
+
+      unsubscribe = () => data.subscription.unsubscribe();
+    } catch (error) {
+      console.error(error);
+      setRemoteReady(true);
+      setSyncStatus("local");
+    }
 
     return () => {
       mounted = false;
-      data.subscription.unsubscribe();
+      unsubscribe?.();
     };
   }, []);
 
   useEffect(() => {
-    if (!ready || !userId) {
+    if (!ready || !userId || !isSupabaseConfigured()) {
       return;
     }
 
-    const supabase = createSupabaseBrowserClient();
+    let supabase: ReturnType<typeof createSupabaseBrowserClient>;
+    try {
+      supabase = createSupabaseBrowserClient();
+    } catch (error) {
+      console.error(error);
+      setRemoteReady(true);
+      setSyncStatus("local");
+      return;
+    }
+
     const currentUserId = userId;
     let cancelled = false;
 
     async function loadRemoteState() {
       setSyncStatus("loading");
 
-      const { data, error } = await supabase
-        .from("app_state")
-        .select("state")
-        .eq("user_id", currentUserId)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from("app_state")
+          .select("state")
+          .eq("user_id", currentUserId)
+          .maybeSingle();
 
-      if (cancelled) {
-        return;
-      }
+        if (cancelled) {
+          return;
+        }
 
-      if (error) {
+        if (error) {
+          console.error(error);
+          setRemoteReady(true);
+          setSyncStatus("error");
+          return;
+        }
+
+        if (data?.state) {
+          const remoteState = normalizeState(data.state as Partial<FitnessState>);
+          const serialized = JSON.stringify(remoteState);
+          lastSavedRef.current = serialized;
+          setState(remoteState);
+          window.localStorage.setItem(key, serialized);
+          setSyncStatus("synced");
+        } else {
+          const currentState = stateRef.current;
+          const serialized = JSON.stringify(currentState);
+          lastSavedRef.current = serialized;
+          await supabase.from("app_state").upsert(
+            {
+              user_id: currentUserId,
+              state: currentState as unknown as Json
+            },
+            { onConflict: "user_id" }
+          );
+          setSyncStatus("synced");
+        }
+
+        setRemoteReady(true);
+      } catch (error) {
         console.error(error);
         setRemoteReady(true);
         setSyncStatus("error");
-        return;
       }
-
-      if (data?.state) {
-        const remoteState = normalizeState(data.state as Partial<FitnessState>);
-        const serialized = JSON.stringify(remoteState);
-        lastSavedRef.current = serialized;
-        setState(remoteState);
-        window.localStorage.setItem(key, serialized);
-        setSyncStatus("synced");
-      } else {
-        const currentState = stateRef.current;
-        const serialized = JSON.stringify(currentState);
-        lastSavedRef.current = serialized;
-        await supabase.from("app_state").upsert(
-          {
-            user_id: currentUserId,
-            state: currentState as unknown as Json
-          },
-          { onConflict: "user_id" }
-        );
-        setSyncStatus("synced");
-      }
-
-      setRemoteReady(true);
     }
 
     loadRemoteState();
@@ -1530,7 +1583,7 @@ export function useFitnessStore() {
     const serialized = JSON.stringify(state);
     window.localStorage.setItem(key, serialized);
 
-    if (!user) {
+    if (!user || !isSupabaseConfigured()) {
       setSyncStatus("local");
       return;
     }
@@ -1547,23 +1600,28 @@ export function useFitnessStore() {
 
     setSyncStatus("saving");
     saveTimerRef.current = setTimeout(async () => {
-      const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase.from("app_state").upsert(
-        {
-          user_id: currentUser.id,
-          state: state as unknown as Json
-        },
-        { onConflict: "user_id" }
-      );
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { error } = await supabase.from("app_state").upsert(
+          {
+            user_id: currentUser.id,
+            state: state as unknown as Json
+          },
+          { onConflict: "user_id" }
+        );
 
-      if (error) {
+        if (error) {
+          console.error(error);
+          setSyncStatus("error");
+          return;
+        }
+
+        lastSavedRef.current = serialized;
+        setSyncStatus("synced");
+      } catch (error) {
         console.error(error);
         setSyncStatus("error");
-        return;
       }
-
-      lastSavedRef.current = serialized;
-      setSyncStatus("synced");
     }, 700);
 
     return () => {
