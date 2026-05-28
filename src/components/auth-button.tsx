@@ -6,7 +6,7 @@ import { AlertCircle, CheckCircle2, Loader2, LogIn, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-const productionSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://anilosss.github.io/GYM/";
+const productionSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://anilosss.github.io/gym/";
 
 export function AuthButton({ compact = false }: { compact?: boolean }) {
   const [user, setUser] = useState<User | null>(null);
@@ -20,19 +20,30 @@ export function AuthButton({ compact = false }: { compact?: boolean }) {
     try {
       const supabase = createSupabaseBrowserClient();
 
-      supabase.auth.getSession().then(({ data, error }) => {
-        if (!mounted) {
-          return;
-        }
+      recoverSessionFromUrl(supabase)
+        .then(() => supabase.auth.getSession())
+        .then(({ data, error }) => {
+          if (!mounted) {
+            return;
+          }
 
-        if (error) {
-          setErrorMessage(error.message);
-        }
+          if (error) {
+            setErrorMessage(error.message);
+          }
 
-        setUser(data.session?.user ?? null);
-        cleanAuthCallbackUrl();
-        setLoading(false);
-      });
+          setUser(data.session?.user ?? null);
+          cleanAuthCallbackUrl();
+          setLoading(false);
+        })
+        .catch((error) => {
+          if (!mounted) {
+            return;
+          }
+
+          setErrorMessage(error instanceof Error ? error.message : "Connexion Google impossible.");
+          cleanAuthCallbackUrl();
+          setLoading(false);
+        });
 
       const { data } = supabase.auth.onAuthStateChange((_event, session) => {
         setUser(session?.user ?? null);
@@ -156,6 +167,31 @@ export function AuthButton({ compact = false }: { compact?: boolean }) {
 
 function getAuthRedirectUrl() {
   return new URL("auth/callback/", productionSiteUrl).toString();
+}
+
+async function recoverSessionFromUrl(supabase: ReturnType<typeof createSupabaseBrowserClient>) {
+  const url = new URL(window.location.href);
+  const code = url.searchParams.get("code");
+  const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+  const accessToken = hashParams.get("access_token");
+  const refreshToken = hashParams.get("refresh_token");
+
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      throw error;
+    }
+  }
+
+  if (accessToken && refreshToken) {
+    const { error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken
+    });
+    if (error) {
+      throw error;
+    }
+  }
 }
 
 function cleanAuthCallbackUrl() {

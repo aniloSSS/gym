@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-const productionSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://anilosss.github.io/GYM/";
+const productionSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://anilosss.github.io/gym/";
 
 export default function AuthCallbackPage() {
   const [message, setMessage] = useState("Connexion Google en cours...");
