@@ -4,9 +4,11 @@ import { useState } from "react";
 import { Beef, CalendarCheck, Camera, Flame, Scale } from "lucide-react";
 import { EditableField, EditToggle } from "@/components/editable-field";
 import { ProgressChart, SessionsChart } from "@/components/charts";
+import { ImageUploadButton } from "@/components/image-upload";
 import { MetricCard } from "@/components/metric-card";
 import { PageHeading } from "@/components/page-heading";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { dateFromIso, emptyDay, localDateIso, monthSundays, useFitnessStore, weekDates } from "@/lib/fitness-store";
 
 export default function TrackingPage() {
@@ -39,7 +41,7 @@ export default function TrackingPage() {
       <PageHeading
         eyebrow="Suivi progression"
         title="Photos, mesures et progression modifiables."
-        description="Entre tes donnees quand tu veux. Pour les photos, colle une URL d'image maintenant, puis Supabase Storage prendra le relais."
+        description="Entre tes donnees quand tu veux et importe tes photos directement depuis ton telephone ou ton ordinateur."
       />
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -142,6 +144,8 @@ function PhotoField({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const hasLocalImage = value.startsWith("data:");
+
   return (
     <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
       <div className="flex aspect-[4/5] items-center justify-center overflow-hidden rounded-lg border border-dashed border-white/15 bg-white/[0.04] text-muted-foreground">
@@ -156,13 +160,17 @@ function PhotoField({
         )}
       </div>
       {editing ? (
-        <EditableField
-          label={`URL photo ${label.toLowerCase()}`}
-          value={value}
-          editing={editing}
-          onChange={onChange}
-          placeholder="https://..."
-        />
+        <div className="rounded-md border border-white/10 bg-white/[0.04] p-3">
+          <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Photo {label.toLowerCase()}</p>
+          <ImageUploadButton value={value} compact onChange={onChange} onRemove={() => onChange("")} />
+          {hasLocalImage && <p className="mt-2 text-xs text-muted-foreground">Photo importee depuis ton appareil.</p>}
+          <Input
+            className="mt-2"
+            value={hasLocalImage ? "" : value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder="Ou colle une URL photo"
+          />
+        </div>
       ) : (
         <div className="rounded-md border border-white/10 bg-white/[0.04] p-3">
           <p className="text-xs font-medium uppercase text-muted-foreground">Photo {label.toLowerCase()}</p>

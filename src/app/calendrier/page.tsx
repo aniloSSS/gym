@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Camera } from "lucide-react";
 import { EditableField, EditToggle } from "@/components/editable-field";
+import { ImageUploadButton } from "@/components/image-upload";
 import { formatDayLabel, MonthCalendar } from "@/components/month-calendar";
 import { PageHeading } from "@/components/page-heading";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -122,6 +123,8 @@ function PhotoPreview({
   editing: boolean;
   onChange: (value: string) => void;
 }) {
+  const hasLocalImage = value.startsWith("data:");
+
   return (
     <div className="space-y-2">
       <div className="flex aspect-[4/5] items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white/[0.04] text-sm text-muted-foreground">
@@ -136,7 +139,17 @@ function PhotoPreview({
         )}
       </div>
       {editing && (
-        <Input value={value} onChange={(event) => onChange(event.target.value)} placeholder={`URL photo ${label.toLowerCase()}`} />
+        <div className="rounded-md border border-white/10 bg-white/[0.04] p-3">
+          <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Photo {label.toLowerCase()}</p>
+          <ImageUploadButton value={value} compact onChange={onChange} onRemove={() => onChange("")} />
+          {hasLocalImage && <p className="mt-2 text-xs text-muted-foreground">Photo importee depuis ton appareil.</p>}
+          <Input
+            className="mt-2"
+            value={hasLocalImage ? "" : value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder="Ou colle une URL photo"
+          />
+        </div>
       )}
     </div>
   );

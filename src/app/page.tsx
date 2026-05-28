@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Dumbbell, Flame, Scale, Search } from "lucide-react";
+import { CalendarDays, CheckCircle2, Dumbbell, Flame, Scale, Search } from "lucide-react";
 import { EditableField, EditToggle } from "@/components/editable-field";
 import { NutritionChart } from "@/components/charts";
 import { MetricCard } from "@/components/metric-card";
@@ -9,13 +9,19 @@ import { PageHeading } from "@/components/page-heading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { emptyDay, localDateIso, useFitnessStore, weekDates } from "@/lib/fitness-store";
+import { dateFromIso, emptyDay, localDateIso, useFitnessStore, weekDates } from "@/lib/fitness-store";
 import { progressValue } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { state, updateDay } = useFitnessStore();
   const [editing, setEditing] = useState(false);
   const today = localDateIso();
+  const todayLabel = dateFromIso(today).toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  });
   const selected = state.tracking[today] ?? emptyDay(today);
   const workout = state.workouts.find((item) => item.id === selected.workoutId);
   const calorieProgress = progressValue(selected.calories, state.profile.caloriesGoal);
@@ -36,6 +42,19 @@ export default function DashboardPage() {
         title="Ton suivi du jour, modifiable en 10 secondes."
         description="Entre tes calories, proteines, poids et choisis ta seance du jour. Tout est sauvegarde localement."
       />
+
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/12 text-primary">
+            <CalendarDays className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase text-muted-foreground">Aujourd&apos;hui</p>
+            <p className="text-sm font-semibold capitalize sm:text-base">{todayLabel}</p>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground">{selected.validated ? "Journee validee" : "Journee a completer"}</p>
+      </div>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Calories" value={`${selected.calories} / ${state.profile.caloriesGoal}`} unit="kcal" icon={Flame} />

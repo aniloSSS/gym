@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { Plus, Search, Trash2, Utensils } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { EditToggle } from "@/components/editable-field";
+import { ImageUploadButton } from "@/components/image-upload";
 import { PageHeading } from "@/components/page-heading";
 import { FoodProductsSection } from "@/components/food-products-section";
 import { localDateIso, Meal, useFitnessStore } from "@/lib/fitness-store";
@@ -140,7 +140,8 @@ function MealTile({ meal, selected, onClick }: { meal: Meal; selected: boolean; 
     >
       <div className="relative aspect-square bg-white/[0.04]">
         {meal.image ? (
-          <Image src={meal.image} alt={meal.name} fill className="object-cover transition-transform group-hover:scale-105" sizes="(max-width: 768px) 50vw, 20vw" />
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={meal.image} alt={meal.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
             <Utensils className="h-8 w-8" />
@@ -171,13 +172,15 @@ function MealDetail({
   onAdd: () => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const hasLocalImage = meal.image.startsWith("data:");
 
   return (
     <Card className="mt-5 overflow-hidden">
       <div className="grid lg:grid-cols-[340px_1fr]">
         <div className="relative aspect-square bg-white/[0.04] lg:aspect-auto">
           {meal.image ? (
-            <Image src={meal.image} alt={meal.name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 340px" />
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={meal.image} alt={meal.name} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full min-h-72 flex-col items-center justify-center gap-3 text-muted-foreground">
               <Utensils className="h-10 w-10" />
@@ -220,7 +223,23 @@ function MealDetail({
                 ))}
               </select>
               <Input value={meal.category} onChange={(event) => onChange({ ...meal, category: event.target.value })} aria-label="Categorie" />
-              <Input value={meal.image} onChange={(event) => onChange({ ...meal, image: event.target.value })} placeholder="URL photo de la recette" />
+              <div className="rounded-md border border-white/10 bg-white/[0.04] p-3">
+                <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Photo de la recette</p>
+                <ImageUploadButton
+                  value={meal.image}
+                  compact
+                  maxSize={1100}
+                  onChange={(image) => onChange({ ...meal, image })}
+                  onRemove={() => onChange({ ...meal, image: "" })}
+                />
+                {hasLocalImage && <p className="mt-2 text-xs text-muted-foreground">Photo importee depuis ton appareil.</p>}
+                <Input
+                  className="mt-2"
+                  value={hasLocalImage ? "" : meal.image}
+                  onChange={(event) => onChange({ ...meal, image: event.target.value })}
+                  placeholder="Ou colle une URL photo"
+                />
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 <Input value={meal.calories} inputMode="numeric" onChange={(event) => onChange({ ...meal, calories: Number(event.target.value) })} aria-label="Calories" />
                 <Input value={meal.protein} inputMode="numeric" onChange={(event) => onChange({ ...meal, protein: Number(event.target.value) })} aria-label="Proteines" />
